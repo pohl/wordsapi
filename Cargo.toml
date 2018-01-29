@@ -1,0 +1,6 @@
+[package]
+name = "wordsapi-client"
+version = "0.1.0"
+authors = ["Pohl Longsine <pohl.longsine@hudl.com>"]
+
+[dependencies]
