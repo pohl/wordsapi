@@ -1,5 +1,5 @@
-pub fn look_up_word(word: &str) {
-    println!("the word to look up is {}", &word)
+pub fn look_up_word(word: &str, token: &str) {
+    println!("the word to look up is {}, the token is {}", &word, &token)
 }
 
 #[cfg(test)]
