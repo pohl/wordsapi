@@ -1,57 +1,27 @@
-extern crate futures;
+extern crate reqwest;
 #[macro_use] extern crate hyper;
-extern crate tokio_core;
 
-
-use std::io::{self, Write};
-use futures::{Future, Stream};
-use hyper::Client;
-use hyper::Method;
-use tokio_core::reactor::Core;
-
+use hyper::header::Headers;
+use std::io::Read;
+use reqwest:: { Error, Client };
 
 header! { (XMashapeKey, "X-Mashape-Key") => [String] }
 header! { (XMashapeHost, "X-Mashape-Host") => [String] }
 
-pub fn look_up_word(word: &str, token: &str) -> Result<(), hyper::error::Error> {
+pub fn look_up_word(word: &str, token: &str)  -> Result<(), reqwest::Error> {
     let api_base = "https://wordsapiv1.p.mashape.com/words/".to_owned();
     let mashape_host = "wordsapiv1.p.mashape.com".to_owned();
+    let uri = format!("{}{}", &api_base, &word);
+    let client = Client::new();
+    let mut headers = Headers::new();
+    headers.set(XMashapeKey(token.to_owned()));
+    headers.set(XMashapeHost(mashape_host.to_owned()));
 
-    let mut core = Core::new()?;
-    let client = Client::new(&core.handle());
-    
-    let uri = format!("{}{}", &api_base, &word).parse()?;
-    println!("URI: {:?}", &uri);
-    let mut request = hyper::Request::new(Method::Get, uri);
-    &request.headers_mut().set(XMashapeKey(token.to_owned()));
-    &request.headers_mut().set(XMashapeHost(mashape_host.to_owned()));
-    println!("Request: {:?}", &request);
-    let response = core.run(client.request(request)).unwrap();
-    println!("{} {}", response.version(), response.status());
-    for header in response.headers().iter() {
-        print!("{}", header);
+    let mut resp = client.get(&uri).headers(headers).send();
+    match resp {
+        Ok(v) => println!("got something {:?}", v),
+        Err(e) => println!("error: : {:?}", e),
     }
-
-    // Finish off our request by fetching all of the body.
-    let body = core.run(response.body().concat2()).unwrap();
-    println!("{}", String::from_utf8_lossy(&body));
-
-    /*
-    let work = client
-	.request(request)
-    	.and_then(|res| {
-            println!("Response: {}", res.status());
-	    res.body().for_each(|chunk| {
-                println!("Chunk...");
-                io::stdout()
-                    .write_all(&chunk)
-                    .map_err(From::from)
-
-	})
-    });
-    let result = core.run(work)?;
-    println!("Resultd: {:?}", result);
-    */
     Ok(())
 }
 
