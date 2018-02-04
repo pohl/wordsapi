@@ -10,39 +10,39 @@ header! { (XMashapeKey, "X-Mashape-Key") => [String] }
 header! { (XMashapeHost, "X-Mashape-Host") => [String] }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct WordData {
-    word: String,
-    frequency: f32,
-    pronunciation: HashMap<String, String>,
-    results: Vec<WordEntry>
+pub struct WordData {
+    pub word: String,
+    pub frequency: f32,
+    pub pronunciation: HashMap<String, String>,
+    pub results: Vec<WordEntry>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct WordEntry {
-    definition: String,
+pub struct WordEntry {
+    pub definition: String,
     #[serde(rename="partOfSpeech")]
-    part_of_speech: String,
-    derivation: Option<Vec<String>>,
+    pub part_of_speech: String,
+    pub derivation: Option<Vec<String>>,
     #[serde(rename="hasSubstances")]
-    has_substances: Option<Vec<String>>,
+    pub has_substances: Option<Vec<String>>,
     #[serde(rename="typeOf")]
-    type_of: Option<Vec<String>>,
+    pub type_of: Option<Vec<String>>,
     #[serde(rename="verbGroup")]
-    verb_group: Option<Vec<String>>,
+    pub verb_group: Option<Vec<String>>,
     #[serde(rename="hasTypes")]
-    has_types: Option<Vec<String>>,
+    pub has_types: Option<Vec<String>>,
     #[serde(rename="hasParts")]
-    has_parts: Option<Vec<String>>,
+    pub has_parts: Option<Vec<String>>,
     #[serde(rename="memberOf")]
-    member_of: Option<Vec<String>>,
-    synonyms: Option<Vec<String>>,
-    antonyms: Option<Vec<String>>,
-    examples: Option<Vec<String>>,
+    pub member_of: Option<Vec<String>>,
+    pub synonyms: Option<Vec<String>>,
+    pub antonyms: Option<Vec<String>>,
+    pub examples: Option<Vec<String>>,
     #[serde(rename="similarTo")]
-    similar_to: Option<Vec<String>>
+    pub similar_to: Option<Vec<String>>
 }
 
-pub fn look_up_word(word: &str, token: &str)  -> Result<(), Error> {
+pub fn look_up_word(word: &str, token: &str)  -> Result<WordData, Error> {
     let api_base = "https://wordsapiv1.p.mashape.com/words/".to_owned();
     let mashape_host = "wordsapiv1.p.mashape.com".to_owned();
     let uri = format!("{}{}", &api_base, &word);
@@ -52,15 +52,13 @@ pub fn look_up_word(word: &str, token: &str)  -> Result<(), Error> {
     headers.set(XMashapeHost(mashape_host.to_owned()));
 
     let resp = client.get(&uri).headers(headers).send();
-    match resp {
+    return match resp {
         Ok(mut v) => { 
-            println!("parsing...");
             let data: WordData = v.json()?;
-            println!("got something {:?}", data);
+            Ok(data)
         },
-        Err(e) => return Err(e),
+        Err(e) => Err(e)
     }
-    Ok(())
 }
 
 #[cfg(test)]
