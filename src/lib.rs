@@ -54,13 +54,13 @@ pub fn look_up_word(word: &str, token: &str) -> Result<WordData, Error> {
     headers.set(XMashapeHost(mashape_host.to_owned()));
 
     let resp = client.get(&uri).headers(headers).send();
-    return match resp {
+    match resp {
         Ok(mut v) => {
             let data: WordData = v.json()?;
             Ok(data)
         }
         Err(e) => Err(e),
-    };
+    }
 }
 
 #[cfg(test)]
