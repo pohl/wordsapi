@@ -44,16 +44,30 @@ pub struct WordEntry {
     pub similar_to: Option<Vec<String>>,
 }
 
+pub struct WordClient {
+    http_client: Client,
+    api_base: String,
+    mashape_host: String  
+}
+
+impl  WordClient {    
+    fn new() -> WordClient {
+       WordClient {
+           http_client: Client::new(),
+           api_base: "https://wordsapiv1.p.mashape.com/words/".to_owned(),
+           mashape_host: "wordsapiv1.p.mashape.com".to_owned()
+       }
+    }
+}
+
 pub fn look_up_word(word: &str, token: &str) -> Result<WordData, Error> {
-    let api_base = "https://wordsapiv1.p.mashape.com/words/".to_owned();
-    let mashape_host = "wordsapiv1.p.mashape.com".to_owned();
-    let uri = format!("{}{}", &api_base, &word);
-    let client = Client::new();
+    let word_client = WordClient::new();
+    let uri = format!("{}{}", &word_client.api_base, &word);
     let mut headers = Headers::new();
     headers.set(XMashapeKey(token.to_owned()));
-    headers.set(XMashapeHost(mashape_host.to_owned()));
+    headers.set(XMashapeHost(word_client.mashape_host.to_owned()));
 
-    let resp = client.get(&uri).headers(headers).send();
+    let resp = word_client.http_client.get(&uri).headers(headers).send();
     match resp {
         Ok(mut v) => {
             let data: WordData = v.json()?;
