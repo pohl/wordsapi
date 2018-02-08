@@ -11,6 +11,9 @@ use std::collections::HashMap;
 header! { (XMashapeKey, "X-Mashape-Key") => [String] }
 header! { (XMashapeHost, "X-Mashape-Host") => [String] }
 
+static API_BASE: &'static str = "https://wordsapiv1.p.mashape.com/words/";
+static MASHAPE_HOST: &'static str = "wordsapiv1.p.mashape.com";
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WordData {
     pub word: String,
@@ -47,41 +50,61 @@ pub struct WordEntry {
 pub struct WordClient {
     http_client: Client,
     api_base: String,
-    mashape_host: String  
+    api_token: String,
+    mashape_host: String,
 }
 
-impl  WordClient {    
-    fn new() -> WordClient {
-       WordClient {
-           http_client: Client::new(),
-           api_base: "https://wordsapiv1.p.mashape.com/words/".to_owned(),
-           mashape_host: "wordsapiv1.p.mashape.com".to_owned()
-       }
-    }
-}
-
-pub fn look_up_word(word: &str, token: &str) -> Result<WordData, Error> {
-    let word_client = WordClient::new();
-    let uri = format!("{}{}", &word_client.api_base, &word);
-    let mut headers = Headers::new();
-    headers.set(XMashapeKey(token.to_owned()));
-    headers.set(XMashapeHost(word_client.mashape_host.to_owned()));
-
-    let resp = word_client.http_client.get(&uri).headers(headers).send();
-    match resp {
-        Ok(mut v) => {
-            let data: WordData = v.json()?;
-            Ok(data)
+impl WordClient {
+    pub fn new(token: &str) -> WordClient {
+        WordClient {
+            http_client: Client::new(),
+            api_base: API_BASE.to_owned(),
+            api_token: token.to_owned(),
+            mashape_host: MASHAPE_HOST.to_owned(),
         }
-        Err(e) => Err(e),
+    }
+
+    pub fn look_up(&self, word: &str) -> Result<WordData, Error> {
+        let uri = format!("{}{}", self.api_base, &word);
+        let mut headers = Headers::new();
+        headers.set(XMashapeKey(self.api_token.clone()));
+        headers.set(XMashapeHost(self.mashape_host.clone()));
+
+        let resp = self.http_client.get(&uri).headers(headers).send();
+        match resp {
+            Ok(mut v) => {
+                let data: WordData = v.json()?;
+                Ok(data)
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 
 #[cfg(test)]
-
 mod tests {
+    use WordClient;
+    use API_BASE;
+    use MASHAPE_HOST;
+
     #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+    fn it_has_api_token() {
+        let token = "TEST_TOKEN";
+        let word_client = WordClient::new(token);
+        assert_eq!(word_client.api_token, token);
+    }
+
+    #[test]
+    fn it_has_api_base() {
+        let token = "TEST_TOKEN";
+        let word_client = WordClient::new(token);
+        assert_eq!(word_client.api_base, API_BASE);
+    }
+
+    #[test]
+    fn it_has_mashape_host() {
+        let token = "TEST_TOKEN";
+        let word_client = WordClient::new(token);
+        assert_eq!(word_client.mashape_host, MASHAPE_HOST);
     }
 }
