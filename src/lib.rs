@@ -3,6 +3,7 @@ extern crate hyper;
 extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 
 use hyper::header::Headers;
 use reqwest::{Client, Error, Response};
@@ -23,6 +24,7 @@ pub struct WordClient {
 
 pub struct WordResponse {
     request_response: Response,
+    response_json: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -83,22 +85,24 @@ impl WordClient {
 }
 
 impl WordResponse {
-    pub fn new(request_response: Response) -> WordResponse {
+    pub fn new(mut request_response: Response) -> WordResponse {
+        let raw_json = match request_response.text() {
+            Err(_e) => "".to_owned(),
+            Ok(s) => s,
+        };
         WordResponse {
             request_response: request_response,
+            response_json: raw_json,            
         }
     }
 
-    pub fn try_parse(&mut self) -> Result<WordData, Error> {
-        let data: WordData = self.request_response.json()?;
+    pub fn try_parse(&self) -> Result<WordData, serde_json::Error> {
+        let data: WordData = serde_json::from_str(&self.response_json)?;
         Ok(data)
     }
 
-    pub fn raw_json(&mut self) -> String {
-        match self.request_response.text() {
-            Err(_e) => "".to_owned(),
-            Ok(s) => s,
-        }
+    pub fn raw_json(&self) -> &String {
+        &self.response_json
     }
 }
 
