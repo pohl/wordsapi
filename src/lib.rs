@@ -106,6 +106,11 @@ impl WordResponse {
     }
 }
 
+pub fn try_parse(word_json: &String) -> Result<WordData, serde_json::Error> {
+        let data: WordData = serde_json::from_str(&word_json)?;
+        Ok(data)    
+}
+
 #[cfg(test)]
 mod tests {
     use WordClient;
