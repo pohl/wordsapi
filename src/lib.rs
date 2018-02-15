@@ -6,8 +6,9 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use hyper::header::Headers;
-use reqwest::{Client, Error, Response};
 use std::collections::HashMap;
+use std::fmt;
+use std::error::Error as StdError;
 
 header! { (XMashapeKey, "X-Mashape-Key") => [String] }
 header! { (XMashapeHost, "X-Mashape-Host") => [String] }
@@ -15,15 +16,39 @@ header! { (XMashapeHost, "X-Mashape-Host") => [String] }
 static API_BASE: &'static str = "https://wordsapiv1.p.mashape.com/words/";
 static MASHAPE_HOST: &'static str = "wordsapiv1.p.mashape.com";
 
+#[derive(Debug)]
+pub enum WordAPIError {
+    RequestError,
+    ResultParseError,
+}
+
+impl fmt::Display for WordAPIError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            WordAPIError::RequestError => f.write_str("RequestError"),
+            WordAPIError::ResultParseError => f.write_str("ResultParseError"),
+        }
+    }
+}
+impl StdError for WordAPIError {
+    fn description(&self) -> &str {
+        match *self {
+            WordAPIError::RequestError => "WordAPI request failed",
+            WordAPIError::ResultParseError => "Could not parse result",
+        }
+    }
+}
+
+
 pub struct WordClient {
-    http_client: Client,
+    http_client: reqwest::Client,
     api_base: String,
     api_token: String,
     mashape_host: String,
 }
 
 pub struct WordResponse {
-    request_response: Response,
+    request_response: reqwest::Response,
     response_json: String
 }
 
@@ -63,14 +88,14 @@ pub struct WordEntry {
 impl WordClient {
     pub fn new(token: &str) -> WordClient {
         WordClient {
-            http_client: Client::new(),
+            http_client: reqwest::Client::new(),
             api_base: API_BASE.to_owned(),
             api_token: token.to_owned(),
             mashape_host: MASHAPE_HOST.to_owned(),
         }
     }
 
-    pub fn look_up(&self, word: &str) -> Result<WordResponse, Error> {
+    pub fn look_up(&self, word: &str) -> Result<WordResponse, WordAPIError> {
         let uri = format!("{}{}", self.api_base, &word);
         let mut headers = Headers::new();
         headers.set(XMashapeKey(self.api_token.clone()));
@@ -79,13 +104,13 @@ impl WordClient {
         let resp = self.http_client.get(&uri).headers(headers).send();
         match resp {
             Ok(v) => Ok(WordResponse::new(v)),
-            Err(e) => Err(e),
+            Err(_e) => Err(WordAPIError::RequestError),
         }
     }
 }
 
 impl WordResponse {
-    pub fn new(mut request_response: Response) -> WordResponse {
+    fn new(mut request_response: reqwest::Response) -> WordResponse {
         let raw_json = match request_response.text() {
             Err(_e) => "".to_owned(),
             Ok(s) => s,
@@ -96,9 +121,8 @@ impl WordResponse {
         }
     }
 
-    pub fn try_parse(&self) -> Result<WordData, serde_json::Error> {
-        let data: WordData = serde_json::from_str(&self.response_json)?;
-        Ok(data)
+    pub fn try_parse(&self) -> Result<WordData, WordAPIError> {
+        return try_parse(&self.response_json);
     }
 
     pub fn raw_json(&self) -> &String {
@@ -106,9 +130,12 @@ impl WordResponse {
     }
 }
 
-pub fn try_parse(word_json: &String) -> Result<WordData, serde_json::Error> {
-        let data: WordData = serde_json::from_str(&word_json)?;
-        Ok(data)    
+pub fn try_parse(word_json: &String) -> Result<WordData, WordAPIError> {
+        let result = serde_json::from_str(&word_json);
+        match result {
+            Ok(word_data) => Ok(word_data),
+            Err(_e) => Err(WordAPIError::ResultParseError),
+        }
 }
 
 #[cfg(test)]
