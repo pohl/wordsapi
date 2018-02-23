@@ -48,7 +48,6 @@ pub struct WordClient {
 }
 
 pub struct WordResponse {
-    request_response: reqwest::Response,
     response_json: String
 }
 
@@ -116,13 +115,12 @@ impl WordResponse {
             Ok(s) => s,
         };
         WordResponse {
-            request_response: request_response,
             response_json: raw_json,            
         }
     }
 
     pub fn try_parse(&self) -> Result<WordData, WordAPIError> {
-        return try_parse(&self.response_json);
+        try_parse(&self.response_json)
     }
 
     pub fn raw_json(&self) -> &String {
@@ -130,8 +128,8 @@ impl WordResponse {
     }
 }
 
-pub fn try_parse(word_json: &String) -> Result<WordData, WordAPIError> {
-        let result = serde_json::from_str(&word_json);
+pub fn try_parse(word_json: &str) -> Result<WordData, WordAPIError> {
+        let result = serde_json::from_str(word_json);
         match result {
             Ok(word_data) => Ok(word_data),
             Err(_e) => Err(WordAPIError::ResultParseError),
