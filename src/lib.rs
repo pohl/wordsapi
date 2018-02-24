@@ -13,6 +13,7 @@ use std::error::Error as StdError;
 header! { (XMashapeKey, "X-Mashape-Key") => [String] }
 header! { (XMashapeHost, "X-Mashape-Host") => [String] }
 header! { (XRateLimitRemaining, "X-RateLimit-requests-Remaining") => [usize]}
+header! { (XRateLimitRequestsLimit, "X-RateLimit-requests-Limit") => [usize]}
 
 static API_BASE: &'static str = "https://wordsapiv1.p.mashape.com/words/";
 static MASHAPE_HOST: &'static str = "wordsapiv1.p.mashape.com";
@@ -49,8 +50,9 @@ pub struct WordClient {
 }
 
 pub struct WordResponse {
-    response_json: String,
-    rate_limit_remaining: usize
+    pub response_json: String,
+    pub rate_limit_remaining: usize,
+    pub rate_limit_requests_limit: usize
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -119,22 +121,18 @@ impl WordResponse {
         let remaining = request_response.headers().get::<XRateLimitRemaining>()
                 .map(|r| **r)
                 .unwrap_or(0);
+        let allowed = request_response.headers().get::<XRateLimitRequestsLimit>()
+                .map(|r| **r)
+                .unwrap_or(0);
         WordResponse {
             response_json: raw_json,
-            rate_limit_remaining: remaining
+            rate_limit_remaining: remaining,
+            rate_limit_requests_limit: allowed
         }
     }
 
     pub fn try_parse(&self) -> Result<WordData, WordAPIError> {
         try_parse(&self.response_json)
-    }
-
-    pub fn raw_json(&self) -> &String {
-        &self.response_json
-    }
-
-    pub fn requests_remaining(&self) -> usize {
-        self.rate_limit_remaining
     }
 }
 
