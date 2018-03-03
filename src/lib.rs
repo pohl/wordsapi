@@ -41,7 +41,6 @@ impl StdError for WordAPIError {
     }
 }
 
-
 pub struct WordClient {
     http_client: reqwest::Client,
     api_base: String,
@@ -52,7 +51,7 @@ pub struct WordClient {
 pub struct WordResponse {
     pub response_json: String,
     pub rate_limit_remaining: usize,
-    pub rate_limit_requests_limit: usize
+    pub rate_limit_requests_limit: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -81,6 +80,8 @@ pub struct WordEntry {
     pub has_parts: Option<Vec<String>>,
     #[serde(rename = "memberOf")]
     pub member_of: Option<Vec<String>>,
+    #[serde(rename = "partOf")]
+    pub part_of: Option<Vec<String>>,
     pub synonyms: Option<Vec<String>>,
     pub antonyms: Option<Vec<String>>,
     pub examples: Option<Vec<String>>,
@@ -118,16 +119,20 @@ impl WordResponse {
             Err(_e) => "".to_owned(),
             Ok(s) => s,
         };
-        let remaining = request_response.headers().get::<XRateLimitRemaining>()
-                .map(|r| **r)
-                .unwrap_or(0);
-        let allowed = request_response.headers().get::<XRateLimitRequestsLimit>()
-                .map(|r| **r)
-                .unwrap_or(0);
+        let remaining = request_response
+            .headers()
+            .get::<XRateLimitRemaining>()
+            .map(|r| **r)
+            .unwrap_or(0);
+        let allowed = request_response
+            .headers()
+            .get::<XRateLimitRequestsLimit>()
+            .map(|r| **r)
+            .unwrap_or(0);
         WordResponse {
             response_json: raw_json,
             rate_limit_remaining: remaining,
-            rate_limit_requests_limit: allowed
+            rate_limit_requests_limit: allowed,
         }
     }
 
@@ -137,11 +142,11 @@ impl WordResponse {
 }
 
 pub fn try_parse(word_json: &str) -> Result<WordData, WordAPIError> {
-        let result = serde_json::from_str(word_json);
-        match result {
-            Ok(word_data) => Ok(word_data),
-            Err(_e) => Err(WordAPIError::ResultParseError),
-        }
+    let result = serde_json::from_str(word_json);
+    match result {
+        Ok(word_data) => Ok(word_data),
+        Err(_e) => Err(WordAPIError::ResultParseError),
+    }
 }
 
 #[cfg(test)]
