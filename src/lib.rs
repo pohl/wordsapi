@@ -24,6 +24,38 @@ pub enum WordAPIError {
     ResultParseError,
 }
 
+#[derive(Debug)]
+pub enum WordRequestType {
+    Everything,
+    Definitions,
+    Synonyms,
+    Antonyms,
+    Examples,
+    Rhymes,
+    Frequency,
+    IsATypeOf,
+    HasTypes,
+    PartOf,
+    HasParts,
+    IsAnInstanceOf,
+    HasInstances,
+    InRegion,
+    RegionOf,
+    UsageOf,
+    HasUsages,
+    IsAMemberOf,
+    HasMembers,
+    IsASubstanceOf,
+    HasSubstances,
+    HasAttribute,
+    InCategory,
+    HasCategories,
+    Also,
+    PertainsTo,
+    SimilarTo,
+    Entails,
+}
+
 impl fmt::Display for WordAPIError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
