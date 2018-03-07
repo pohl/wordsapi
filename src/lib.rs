@@ -181,11 +181,30 @@ pub fn try_parse(word_json: &str) -> Result<WordData, WordAPIError> {
     }
 }
 
+impl WordRequestType {
+    fn to_str(&self) -> String {
+        match self {
+            &WordRequestType::Everything => "".to_owned(),
+            _ => {
+                let repr = format!("{:?}", &self);
+                let mut result = String::with_capacity(repr.len());
+                if !repr.is_empty() {
+                    let mut chars = repr.chars();
+                    result.push_str(&chars.next().unwrap().to_lowercase().to_string());
+                    result.extend(chars);
+                }
+                result
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use WordClient;
     use API_BASE;
     use MASHAPE_HOST;
+    use WordRequestType;
 
     #[test]
     fn it_has_api_token() {
@@ -206,5 +225,37 @@ mod tests {
         let token = "TEST_TOKEN";
         let word_client = WordClient::new(token);
         assert_eq!(word_client.mashape_host, MASHAPE_HOST);
+    }
+
+    #[test]
+    fn it_converts_enum_to_string() {
+        assert_eq!(WordRequestType::Everything.to_str(), "");
+        assert_eq!(WordRequestType::Definitions.to_str(), "definitions");
+        assert_eq!(WordRequestType::Synonyms.to_str(), "synonyms");
+        assert_eq!(WordRequestType::Antonyms.to_str(), "antonyms");
+        assert_eq!(WordRequestType::Examples.to_str(), "examples");
+        assert_eq!(WordRequestType::Rhymes.to_str(), "rhymes");
+        assert_eq!(WordRequestType::Frequency.to_str(), "frequency");
+        assert_eq!(WordRequestType::IsATypeOf.to_str(), "isATypeOf");
+        assert_eq!(WordRequestType::HasTypes.to_str(), "hasTypes");
+        assert_eq!(WordRequestType::PartOf.to_str(), "partOf");
+        assert_eq!(WordRequestType::HasParts.to_str(), "hasParts");
+        assert_eq!(WordRequestType::IsAnInstanceOf.to_str(), "isAnInstanceOf");
+        assert_eq!(WordRequestType::HasInstances.to_str(), "hasInstances");
+        assert_eq!(WordRequestType::InRegion.to_str(), "inRegion");
+        assert_eq!(WordRequestType::RegionOf.to_str(), "regionOf");
+        assert_eq!(WordRequestType::UsageOf.to_str(), "usageOf");
+        assert_eq!(WordRequestType::HasUsages.to_str(), "hasUsages");
+        assert_eq!(WordRequestType::IsAMemberOf.to_str(), "isAMemberOf");
+        assert_eq!(WordRequestType::HasMembers.to_str(), "hasMembers");
+        assert_eq!(WordRequestType::IsASubstanceOf.to_str(), "isASubstanceOf");
+        assert_eq!(WordRequestType::HasSubstances.to_str(), "hasSubstances");
+        assert_eq!(WordRequestType::HasAttribute.to_str(), "hasAttribute");
+        assert_eq!(WordRequestType::InCategory.to_str(), "inCategory");
+        assert_eq!(WordRequestType::HasCategories.to_str(), "hasCategories");
+        assert_eq!(WordRequestType::Also.to_str(), "also");
+        assert_eq!(WordRequestType::PertainsTo.to_str(), "pertainsTo");
+        assert_eq!(WordRequestType::SimilarTo.to_str(), "similarTo");
+        assert_eq!(WordRequestType::Entails.to_str(), "entails");
     }
 }
