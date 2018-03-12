@@ -98,7 +98,7 @@ pub struct WordData {
 pub struct WordEntry {
     pub definition: String,
     #[serde(rename = "partOfSpeech")]
-    pub part_of_speech: String,
+    pub part_of_speech: Option<String>,
     pub derivation: Option<Vec<String>>,
     #[serde(rename = "hasSubstances")]
     pub has_substances: Option<Vec<String>>,
@@ -119,6 +119,8 @@ pub struct WordEntry {
     pub examples: Option<Vec<String>>,
     #[serde(rename = "similarTo")]
     pub similar_to: Option<Vec<String>>,
+    #[serde(rename = "pertainsTo")]
+    pub pertains_to: Option<Vec<String>>,
 }
 
 impl WordClient {
@@ -211,7 +213,10 @@ pub fn try_parse(word_json: &str) -> Result<WordData, WordAPIError> {
     let result = serde_json::from_str(word_json);
     match result {
         Ok(word_data) => Ok(word_data),
-        Err(_e) => Err(WordAPIError::ResultParseError),
+        Err(e) => {
+            println!("serde says {}", e);
+            Err(WordAPIError::ResultParseError)
+        },
     }
 }
 
