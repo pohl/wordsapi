@@ -89,8 +89,8 @@ pub struct WordResponse {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WordData {
     pub word: String,
-    pub frequency: f32,
-    pub pronunciation: HashMap<String, String>,
+    pub frequency: Option<f32>,
+    pub pronunciation: Option<HashMap<String, String>>,
     pub results: Vec<WordEntry>,
 }
 
