@@ -249,10 +249,10 @@ pub fn try_parse(word_json: &str) -> Result<WordData, WordAPIError> {
 
 #[cfg(test)]
 mod tests {
-    use WordClient;
-    use WordRequestType;
-    use API_BASE;
-    use MASHAPE_HOST;
+    use crate::WordClient;
+    use crate::WordRequestType;
+    use crate::API_BASE;
+    use crate::MASHAPE_HOST;
 
     #[test]
     fn it_has_api_token() {
