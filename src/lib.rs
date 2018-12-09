@@ -1,20 +1,26 @@
-#[macro_use]
 extern crate hyper;
-extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate tokio_core;
 
-use hyper::header::Headers;
+use hyper::client::HttpConnector;
+use hyper::error::Error;
+use hyper::header::HeaderName;
+use hyper::rt::Future;
+use hyper::rt::Stream;
+use hyper::Body;
+use hyper::Client;
+use hyper::Request;
 use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt;
+use tokio_core::reactor::Core;
 
-header! { (XMashapeKey, "X-Mashape-Key") => [String] }
-header! { (XMashapeHost, "X-Mashape-Host") => [String] }
-header! { (XRateLimitRemaining, "X-RateLimit-requests-Remaining") => [usize]}
-header! { (XRateLimitRequestsLimit, "X-RateLimit-requests-Limit") => [usize]}
-
+static X_MASHAPE_KEY: &[u8] = b"x-mashape-key";
+static X_MASHAPE_HOST: &[u8] = b"x-mashape-host";
+static X_RATE_LIMIT_REMAINING: &[u8] = b"x-ratelimit-requests-remaining";
+static X_RATE_LIMIT_REQUESTS_LIMIT: &[u8] = b"x-ratelimit-requests-limit";
 static API_BASE: &'static str = "https://wordsapiv1.p.mashape.com/words/";
 static MASHAPE_HOST: &'static str = "wordsapiv1.p.mashape.com";
 
@@ -74,7 +80,7 @@ impl StdError for WordAPIError {
 }
 
 pub struct WordClient {
-    http_client: reqwest::Client,
+    http_client: Client<HttpConnector, Body>,
     api_base: String,
     api_token: String,
     mashape_host: String,
@@ -126,7 +132,7 @@ pub struct WordEntry {
 impl WordClient {
     pub fn new(token: &str) -> WordClient {
         WordClient {
-            http_client: reqwest::Client::new(),
+            http_client: Client::new(),
             api_base: API_BASE.to_owned(),
             api_token: token.to_owned(),
             mashape_host: MASHAPE_HOST.to_owned(),
@@ -139,14 +145,45 @@ impl WordClient {
         request_type: &WordRequestType,
     ) -> Result<WordResponse, WordAPIError> {
         let uri = self.request_url(word, request_type);
-        let mut headers = Headers::new();
-        headers.set(XMashapeKey(self.api_token.clone()));
-        headers.set(XMashapeHost(self.mashape_host.clone()));
-
-        let resp = self.http_client.get(&uri).headers(headers).send();
-        match resp {
-            Ok(v) => Ok(WordResponse::new(v)),
-            Err(_e) => Err(WordAPIError::RequestError),
+        let request = Request::builder()
+            .method("GET")
+            .uri(uri)
+            .header(X_MASHAPE_KEY, self.api_token.to_owned())
+            .header(X_MASHAPE_HOST, self.mashape_host.to_owned())
+            .body(Body::empty())
+            .unwrap();
+        let work = self
+            .http_client
+            .request(request)
+            .and_then(|response| {
+                let remaining = response
+                    .headers()
+                    .get(HeaderName::from_lowercase(X_RATE_LIMIT_REMAINING).unwrap())
+                    .map(|hv| hv.to_str().unwrap().to_string())
+                    .map_or(0, |v| v.parse::<usize>().unwrap());
+                let allowed = response
+                    .headers()
+                    .get(HeaderName::from_lowercase(X_RATE_LIMIT_REQUESTS_LIMIT).unwrap())
+                    .map(|hv| hv.to_str().unwrap().to_string())
+                    .map_or(0, |v| v.parse::<usize>().unwrap());
+                response
+                    .into_body()
+                    .concat2()
+                    .map(move |body| {
+                        (
+                            String::from_utf8(body.to_vec()).unwrap(),
+                            allowed,
+                            remaining,
+                        )
+                    })
+                    .map_err(|err| Error::from(err))
+            })
+            .map_err(|_err| Err(WordAPIError::RequestError));
+        let mut reactor = Core::new().unwrap();
+        let result = reactor.run(work);
+        match result {
+            Ok(r) => Ok(WordResponse::new(r.0, r.1, r.2)),
+            Err(_e) => _e,
         }
     }
 
@@ -186,21 +223,7 @@ impl WordClient {
 }
 
 impl WordResponse {
-    fn new(mut request_response: reqwest::Response) -> WordResponse {
-        let raw_json = match request_response.text() {
-            Err(_e) => "".to_owned(),
-            Ok(s) => s,
-        };
-        let remaining = request_response
-            .headers()
-            .get::<XRateLimitRemaining>()
-            .map(|r| **r)
-            .unwrap_or(0);
-        let allowed = request_response
-            .headers()
-            .get::<XRateLimitRequestsLimit>()
-            .map(|r| **r)
-            .unwrap_or(0);
+    fn new(raw_json: String, allowed: usize, remaining: usize) -> WordResponse {
         WordResponse {
             response_json: raw_json,
             rate_limit_remaining: remaining,
