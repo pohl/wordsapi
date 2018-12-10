@@ -1,4 +1,5 @@
 extern crate hyper;
+extern crate hyper_tls;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
@@ -12,6 +13,7 @@ use hyper::rt::Stream;
 use hyper::Body;
 use hyper::Client;
 use hyper::Request;
+use hyper_tls::HttpsConnector;
 use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt;
@@ -80,7 +82,7 @@ impl StdError for WordAPIError {
 }
 
 pub struct WordClient {
-    http_client: Client<HttpConnector, Body>,
+    https_client: Client<HttpsConnector<HttpConnector>, Body>,
     api_base: String,
     api_token: String,
     mashape_host: String,
@@ -131,8 +133,10 @@ pub struct WordEntry {
 
 impl WordClient {
     pub fn new(token: &str) -> WordClient {
+        let https = HttpsConnector::new(4).unwrap();
+        let client = Client::builder().build::<_, hyper::Body>(https);
         WordClient {
-            http_client: Client::new(),
+            https_client: client,
             api_base: API_BASE.to_owned(),
             api_token: token.to_owned(),
             mashape_host: MASHAPE_HOST.to_owned(),
@@ -153,7 +157,7 @@ impl WordClient {
             .body(Body::empty())
             .unwrap();
         let work = self
-            .http_client
+            .https_client
             .request(request)
             .and_then(|response| {
                 let remaining = response
@@ -178,7 +182,10 @@ impl WordClient {
                     })
                     .map_err(|err| Error::from(err))
             })
-            .map_err(|_err| Err(WordAPIError::RequestError));
+            .map_err(|_err| {
+                println!("api says {}", _err);
+                Err(WordAPIError::RequestError)
+            });
         let mut reactor = Core::new().unwrap();
         let result = reactor.run(work);
         match result {
