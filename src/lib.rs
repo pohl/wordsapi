@@ -180,7 +180,7 @@ impl WordClient {
                             remaining,
                         )
                     })
-                    .map_err(|err| Error::from(err))
+                    .map_err(Error::from)
             })
             .map_err(|_err| {
                 println!("api says {}", _err);
