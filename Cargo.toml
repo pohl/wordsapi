@@ -1,5 +1,5 @@
 [package]
-name = "wordsapi-client"
+name = "wordsapi"
 version = "0.3.0"
 authors = ["Pohl Longsine <pohl.longsine@gmail.com>"]
 
