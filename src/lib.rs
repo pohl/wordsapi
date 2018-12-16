@@ -135,7 +135,7 @@ impl WordClient {
     pub fn new(token: &str) -> WordClient {
         let https = HttpsConnector::new(4).unwrap();
         let client = Client::builder().build::<_, hyper::Body>(https);
-        WordClient {
+        Self {
             https_client: client,
             api_base: API_BASE.to_owned(),
             api_token: token.to_owned(),
@@ -231,7 +231,7 @@ impl WordClient {
 
 impl WordResponse {
     fn new(raw_json: String, allowed: usize, remaining: usize) -> WordResponse {
-        WordResponse {
+        Self {
             response_json: raw_json,
             rate_limit_remaining: remaining,
             rate_limit_requests_limit: allowed,
