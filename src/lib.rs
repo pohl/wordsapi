@@ -11,7 +11,6 @@ use hyper::header::HeaderName;
 use hyper::rt::Future;
 use hyper::rt::Stream;
 use hyper::Body;
-use hyper::Client;
 use hyper::Request;
 use hyper_tls::HttpsConnector;
 use std::collections::HashMap;
@@ -27,13 +26,13 @@ static API_BASE: &'static str = "https://wordsapiv1.p.mashape.com/words/";
 static MASHAPE_HOST: &'static str = "wordsapiv1.p.mashape.com";
 
 #[derive(Debug)]
-pub enum WordAPIError {
+pub enum RequestError {
     RequestError,
     ResultParseError,
 }
 
 #[derive(Debug)]
-pub enum WordRequestType {
+pub enum RequestType {
     Everything,
     Definitions,
     Synonyms,
@@ -64,46 +63,46 @@ pub enum WordRequestType {
     Entails,
 }
 
-impl fmt::Display for WordAPIError {
+impl fmt::Display for RequestError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            WordAPIError::RequestError => f.write_str("RequestError"),
-            WordAPIError::ResultParseError => f.write_str("ResultParseError"),
+            RequestError::RequestError => f.write_str("RequestError"),
+            RequestError::ResultParseError => f.write_str("ResultParseError"),
         }
     }
 }
-impl StdError for WordAPIError {
+impl StdError for RequestError {
     fn description(&self) -> &str {
         match *self {
-            WordAPIError::RequestError => "WordAPI request failed",
-            WordAPIError::ResultParseError => "Could not parse result",
+            RequestError::RequestError => "WordAPI request failed",
+            RequestError::ResultParseError => "Could not parse result",
         }
     }
 }
 
-pub struct WordClient {
-    https_client: Client<HttpsConnector<HttpConnector>, Body>,
+pub struct Client {
+    https_client: hyper::Client<HttpsConnector<HttpConnector>, Body>,
     api_base: String,
     api_token: String,
     mashape_host: String,
 }
 
-pub struct WordResponse {
+pub struct Response {
     pub response_json: String,
     pub rate_limit_remaining: usize,
     pub rate_limit_requests_limit: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WordData {
+pub struct Word {
     pub word: String,
     pub frequency: Option<f32>,
     pub pronunciation: Option<HashMap<String, String>>,
-    pub results: Vec<WordEntry>,
+    pub entries: Vec<Entry>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WordEntry {
+pub struct Entry {
     pub definition: String,
     #[serde(rename = "partOfSpeech")]
     pub part_of_speech: Option<String>,
@@ -131,10 +130,10 @@ pub struct WordEntry {
     pub pertains_to: Option<Vec<String>>,
 }
 
-impl WordClient {
-    pub fn new(token: &str) -> WordClient {
+impl Client {
+    pub fn new(token: &str) -> Client {
         let https = HttpsConnector::new(4).unwrap();
-        let client = Client::builder().build::<_, hyper::Body>(https);
+        let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Self {
             https_client: client,
             api_base: API_BASE.to_owned(),
@@ -146,8 +145,8 @@ impl WordClient {
     pub fn look_up(
         &self,
         word: &str,
-        request_type: &WordRequestType,
-    ) -> Result<WordResponse, WordAPIError> {
+        request_type: &RequestType,
+    ) -> Result<Response, RequestError> {
         let uri = self.request_url(word, request_type);
         let request = Request::builder()
             .method("GET")
@@ -184,53 +183,53 @@ impl WordClient {
             })
             .map_err(|_err| {
                 println!("api says {}", _err);
-                Err(WordAPIError::RequestError)
+                Err(RequestError::RequestError)
             });
         let mut reactor = Core::new().unwrap();
         let result = reactor.run(work);
         match result {
-            Ok(r) => Ok(WordResponse::new(r.0, r.1, r.2)),
+            Ok(r) => Ok(Response::new(r.0, r.1, r.2)),
             Err(_e) => _e,
         }
     }
 
-    fn request_url(&self, word: &str, request_type: &WordRequestType) -> String {
+    fn request_url(&self, word: &str, request_type: &RequestType) -> String {
         let suffix = match *request_type {
-            WordRequestType::Everything => "",
-            WordRequestType::Definitions => "/definitions",
-            WordRequestType::Synonyms => "/synonyms",
-            WordRequestType::Antonyms => "/antonyms",
-            WordRequestType::Examples => "/examples",
-            WordRequestType::Rhymes => "/rhymes",
-            WordRequestType::Frequency => "/frequency",
-            WordRequestType::IsATypeOf => "/isATypeOf",
-            WordRequestType::HasTypes => "/hasTypes",
-            WordRequestType::PartOf => "/partOf",
-            WordRequestType::HasParts => "/hasParts",
-            WordRequestType::IsAnInstanceOf => "/isAnInstanceOf",
-            WordRequestType::HasInstances => "/hasInstances",
-            WordRequestType::InRegion => "/inRegion",
-            WordRequestType::RegionOf => "/regionOf",
-            WordRequestType::UsageOf => "/usageOf",
-            WordRequestType::HasUsages => "/hasUsages",
-            WordRequestType::IsAMemberOf => "/isAMemberOf",
-            WordRequestType::HasMembers => "/hasMembers",
-            WordRequestType::IsASubstanceOf => "/isASubstanceOf",
-            WordRequestType::HasSubstances => "/hasSubstances",
-            WordRequestType::HasAttribute => "/hasAttribute",
-            WordRequestType::InCategory => "/inCategory",
-            WordRequestType::HasCategories => "/hasCategories",
-            WordRequestType::Also => "/also",
-            WordRequestType::PertainsTo => "/pertainsTo",
-            WordRequestType::SimilarTo => "/similarTo",
-            WordRequestType::Entails => "/entails",
+            RequestType::Everything => "",
+            RequestType::Definitions => "/definitions",
+            RequestType::Synonyms => "/synonyms",
+            RequestType::Antonyms => "/antonyms",
+            RequestType::Examples => "/examples",
+            RequestType::Rhymes => "/rhymes",
+            RequestType::Frequency => "/frequency",
+            RequestType::IsATypeOf => "/isATypeOf",
+            RequestType::HasTypes => "/hasTypes",
+            RequestType::PartOf => "/partOf",
+            RequestType::HasParts => "/hasParts",
+            RequestType::IsAnInstanceOf => "/isAnInstanceOf",
+            RequestType::HasInstances => "/hasInstances",
+            RequestType::InRegion => "/inRegion",
+            RequestType::RegionOf => "/regionOf",
+            RequestType::UsageOf => "/usageOf",
+            RequestType::HasUsages => "/hasUsages",
+            RequestType::IsAMemberOf => "/isAMemberOf",
+            RequestType::HasMembers => "/hasMembers",
+            RequestType::IsASubstanceOf => "/isASubstanceOf",
+            RequestType::HasSubstances => "/hasSubstances",
+            RequestType::HasAttribute => "/hasAttribute",
+            RequestType::InCategory => "/inCategory",
+            RequestType::HasCategories => "/hasCategories",
+            RequestType::Also => "/also",
+            RequestType::PertainsTo => "/pertainsTo",
+            RequestType::SimilarTo => "/similarTo",
+            RequestType::Entails => "/entails",
         };
         format!("{}{}{}", self.api_base, word, suffix)
     }
 }
 
-impl WordResponse {
-    fn new(raw_json: String, allowed: usize, remaining: usize) -> WordResponse {
+impl Response {
+    fn new(raw_json: String, allowed: usize, remaining: usize) -> Response {
         Self {
             response_json: raw_json,
             rate_limit_remaining: remaining,
@@ -238,56 +237,56 @@ impl WordResponse {
         }
     }
 
-    pub fn try_parse(&self) -> Result<WordData, WordAPIError> {
+    pub fn try_parse(&self) -> Result<Word, RequestError> {
         try_parse(&self.response_json)
     }
 }
 
-pub fn try_parse(word_json: &str) -> Result<WordData, WordAPIError> {
+pub fn try_parse(word_json: &str) -> Result<Word, RequestError> {
     let result = serde_json::from_str(word_json);
     match result {
         Ok(word_data) => Ok(word_data),
         Err(e) => {
             println!("serde says {}", e);
-            Err(WordAPIError::ResultParseError)
+            Err(RequestError::ResultParseError)
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::WordClient;
-    use crate::WordRequestType;
+    use crate::Client;
+    use crate::RequestType;
     use crate::API_BASE;
     use crate::MASHAPE_HOST;
 
     #[test]
     fn it_has_api_token() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         assert_eq!(word_client.api_token, token);
     }
 
     #[test]
     fn it_has_api_base() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         assert_eq!(word_client.api_base, API_BASE);
     }
 
     #[test]
     fn it_has_mashape_host() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         assert_eq!(word_client.mashape_host, MASHAPE_HOST);
     }
 
     #[test]
     fn it_makes_uri_everything() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::Everything);
+        let request_uri = word_client.request_url(word, &RequestType::Everything);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example"
@@ -297,9 +296,9 @@ mod tests {
     #[test]
     fn it_makes_uri_definitions() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::Definitions);
+        let request_uri = word_client.request_url(word, &RequestType::Definitions);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/definitions"
@@ -309,9 +308,9 @@ mod tests {
     #[test]
     fn it_makes_uri_synonyms() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::Synonyms);
+        let request_uri = word_client.request_url(word, &RequestType::Synonyms);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/synonyms"
@@ -321,9 +320,9 @@ mod tests {
     #[test]
     fn it_makes_uri_antonyms() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::Antonyms);
+        let request_uri = word_client.request_url(word, &RequestType::Antonyms);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/antonyms"
@@ -333,9 +332,9 @@ mod tests {
     #[test]
     fn it_makes_uri_examples() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::Examples);
+        let request_uri = word_client.request_url(word, &RequestType::Examples);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/examples"
@@ -345,9 +344,9 @@ mod tests {
     #[test]
     fn it_makes_uri_rhymes() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::Rhymes);
+        let request_uri = word_client.request_url(word, &RequestType::Rhymes);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/rhymes"
@@ -357,9 +356,9 @@ mod tests {
     #[test]
     fn it_makes_uri_frequency() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::Frequency);
+        let request_uri = word_client.request_url(word, &RequestType::Frequency);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/frequency"
@@ -369,9 +368,9 @@ mod tests {
     #[test]
     fn it_makes_uri_is_a_type_of() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::IsATypeOf);
+        let request_uri = word_client.request_url(word, &RequestType::IsATypeOf);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/isATypeOf"
@@ -381,9 +380,9 @@ mod tests {
     #[test]
     fn it_makes_uri_has_types() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::HasTypes);
+        let request_uri = word_client.request_url(word, &RequestType::HasTypes);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/hasTypes"
@@ -393,9 +392,9 @@ mod tests {
     #[test]
     fn it_makes_uri_part_of() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::PartOf);
+        let request_uri = word_client.request_url(word, &RequestType::PartOf);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/partOf"
@@ -405,9 +404,9 @@ mod tests {
     #[test]
     fn it_makes_uri_has_parts() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::HasParts);
+        let request_uri = word_client.request_url(word, &RequestType::HasParts);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/hasParts"
@@ -417,9 +416,9 @@ mod tests {
     #[test]
     fn it_makes_uri_is_an_instance_of() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::IsAnInstanceOf);
+        let request_uri = word_client.request_url(word, &RequestType::IsAnInstanceOf);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/isAnInstanceOf"
@@ -429,9 +428,9 @@ mod tests {
     #[test]
     fn it_makes_uri_has_instances() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::HasInstances);
+        let request_uri = word_client.request_url(word, &RequestType::HasInstances);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/hasInstances"
@@ -441,9 +440,9 @@ mod tests {
     #[test]
     fn it_makes_uri_in_region() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::InRegion);
+        let request_uri = word_client.request_url(word, &RequestType::InRegion);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/inRegion"
@@ -453,9 +452,9 @@ mod tests {
     #[test]
     fn it_makes_uri_region_of() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::RegionOf);
+        let request_uri = word_client.request_url(word, &RequestType::RegionOf);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/regionOf"
@@ -465,9 +464,9 @@ mod tests {
     #[test]
     fn it_makes_uri_usage_of() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::UsageOf);
+        let request_uri = word_client.request_url(word, &RequestType::UsageOf);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/usageOf"
@@ -477,9 +476,9 @@ mod tests {
     #[test]
     fn it_makes_uri_has_usages() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::HasUsages);
+        let request_uri = word_client.request_url(word, &RequestType::HasUsages);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/hasUsages"
@@ -489,9 +488,9 @@ mod tests {
     #[test]
     fn it_makes_uri_is_a_member_of() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::IsAMemberOf);
+        let request_uri = word_client.request_url(word, &RequestType::IsAMemberOf);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/isAMemberOf"
@@ -501,9 +500,9 @@ mod tests {
     #[test]
     fn it_makes_uri_has_members() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::HasMembers);
+        let request_uri = word_client.request_url(word, &RequestType::HasMembers);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/hasMembers"
@@ -513,9 +512,9 @@ mod tests {
     #[test]
     fn it_makes_uri_is_a_substance_of() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::IsASubstanceOf);
+        let request_uri = word_client.request_url(word, &RequestType::IsASubstanceOf);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/isASubstanceOf"
@@ -525,9 +524,9 @@ mod tests {
     #[test]
     fn it_makes_uri_has_substances() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::HasSubstances);
+        let request_uri = word_client.request_url(word, &RequestType::HasSubstances);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/hasSubstances"
@@ -537,9 +536,9 @@ mod tests {
     #[test]
     fn it_makes_uri_has_attribute() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::HasAttribute);
+        let request_uri = word_client.request_url(word, &RequestType::HasAttribute);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/hasAttribute"
@@ -549,9 +548,9 @@ mod tests {
     #[test]
     fn it_makes_uri_in_category() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::InCategory);
+        let request_uri = word_client.request_url(word, &RequestType::InCategory);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/inCategory"
@@ -561,9 +560,9 @@ mod tests {
     #[test]
     fn it_makes_uri_has_categories() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::HasCategories);
+        let request_uri = word_client.request_url(word, &RequestType::HasCategories);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/hasCategories"
@@ -573,9 +572,9 @@ mod tests {
     #[test]
     fn it_makes_uri_also() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::Also);
+        let request_uri = word_client.request_url(word, &RequestType::Also);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/also"
@@ -585,9 +584,9 @@ mod tests {
     #[test]
     fn it_makes_uri_pertains_to() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::PertainsTo);
+        let request_uri = word_client.request_url(word, &RequestType::PertainsTo);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/pertainsTo"
@@ -597,9 +596,9 @@ mod tests {
     #[test]
     fn it_makes_uri_similar_to() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::SimilarTo);
+        let request_uri = word_client.request_url(word, &RequestType::SimilarTo);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/similarTo"
@@ -609,9 +608,9 @@ mod tests {
     #[test]
     fn it_makes_uri_entails() {
         let token = "TEST_TOKEN";
-        let word_client = WordClient::new(token);
+        let word_client = Client::new(token);
         let word = "example";
-        let request_uri = word_client.request_url(word, &WordRequestType::Entails);
+        let request_uri = word_client.request_url(word, &RequestType::Entails);
         assert_eq!(
             request_uri,
             "https://wordsapiv1.p.mashape.com/words/example/entails"
