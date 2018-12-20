@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt;
 use tokio_core::reactor::Core;
+use serde::de::DeserializeOwned;
 
 static X_MASHAPE_KEY: &[u8] = b"x-mashape-key";
 static X_MASHAPE_HOST: &[u8] = b"x-mashape-host";
@@ -71,6 +72,7 @@ impl fmt::Display for RequestError {
         }
     }
 }
+
 impl StdError for RequestError {
     fn description(&self) -> &str {
         match *self {
@@ -87,7 +89,8 @@ pub struct Client {
     mashape_host: String,
 }
 
-pub struct Response {
+pub struct Response<T> {
+    pub result: Result<T, RequestError>,
     pub response_json: String,
     pub rate_limit_remaining: usize,
     pub rate_limit_requests_limit: usize,
@@ -98,6 +101,7 @@ pub struct Word {
     pub word: String,
     pub frequency: Option<f32>,
     pub pronunciation: Option<HashMap<String, String>>,
+    #[serde(rename = "results")]
     pub entries: Vec<Entry>,
 }
 
@@ -142,12 +146,11 @@ impl Client {
         }
     }
 
-    pub fn look_up(
+    pub fn look_up<T: DeserializeOwned + HasRequestType>(
         &self,
-        word: &str,
-        request_type: &RequestType,
-    ) -> Result<Response, RequestError> {
-        let uri = self.request_url(word, request_type);
+        word: &str
+    ) -> Result<Response<T>, RequestError> {
+        let uri = self.request_url(word, &T::request_type());
         let request = Request::builder()
             .method("GET")
             .uri(uri)
@@ -228,28 +231,41 @@ impl Client {
     }
 }
 
-impl Response {
-    fn new(raw_json: String, allowed: usize, remaining: usize) -> Response {
+impl<T: DeserializeOwned> Response<T> {
+    fn new(raw_json: String, allowed: usize, remaining: usize) -> Response<T> {
         Self {
+            result: try_parse::<T>(&raw_json),
             response_json: raw_json,
             rate_limit_remaining: remaining,
             rate_limit_requests_limit: allowed,
         }
     }
 
-    pub fn try_parse(&self) -> Result<Word, RequestError> {
-        try_parse(&self.response_json)
+    pub fn try_parse(&self) -> Result<T, RequestError> {
+        try_parse::<T>(&self.response_json)
     }
 }
 
-pub fn try_parse(word_json: &str) -> Result<Word, RequestError> {
-    let result = serde_json::from_str(word_json);
+pub fn try_parse<T: DeserializeOwned>(word_json: &str) -> Result<T, RequestError>
+{
+    let result: Result<T, serde_json::Error> = serde_json::from_str::<T>(word_json);
     match result {
         Ok(word_data) => Ok(word_data),
         Err(e) => {
             println!("serde says {}", e);
             Err(RequestError::ResultParseError)
         }
+    }
+}
+
+pub trait HasRequestType {
+    fn request_type() -> RequestType;
+}
+
+impl HasRequestType for Word {
+    fn request_type() -> RequestType
+    {
+        return RequestType::Everything;
     }
 }
 
