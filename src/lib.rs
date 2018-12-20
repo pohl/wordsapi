@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 extern crate hyper;
 extern crate hyper_tls;
 #[macro_use]
