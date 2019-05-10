@@ -6,6 +6,7 @@ use hyper::rt::Stream;
 use hyper::Body;
 use hyper::Request;
 use hyper_tls::HttpsConnector;
+use log::{debug, error, trace};
 use serde::de::DeserializeOwned;
 use tokio_core::reactor::Core;
 
@@ -44,6 +45,9 @@ impl Client {
         &self,
         word: &str,
     ) -> Result<Response<T>, RequestError> {
+        // TODO return future
+        error!("spectacular");
+        debug!("wtf");
         let uri = self.request_url(word, &T::request_type());
         let request = Request::builder()
             .method("GET")
@@ -79,7 +83,7 @@ impl Client {
                     .map_err(Error::from)
             })
             .map_err(|_err| {
-                println!("api says {}", _err);
+                trace!("api says {}", _err);
                 Err(RequestError::RequestError)
             });
         let mut reactor = Core::new().unwrap();
