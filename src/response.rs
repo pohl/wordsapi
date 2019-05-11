@@ -1,3 +1,4 @@
+use log::trace;
 use serde::de::DeserializeOwned;
 
 use crate::RequestError;
@@ -29,7 +30,7 @@ pub fn try_parse<T: DeserializeOwned>(word_json: &str) -> Result<T, RequestError
     match result {
         Ok(word_data) => Ok(word_data),
         Err(e) => {
-            println!("serde says {}", e);
+            trace!("serde says {}", e);
             Err(RequestError::ResultParseError)
         }
     }
