@@ -46,8 +46,7 @@ impl Client {
         word: &str,
     ) -> Result<Response<T>, RequestError> {
         // TODO return future
-        error!("spectacular");
-        debug!("wtf");
+        trace!("looking up {}", word);
         let uri = self.request_url(word, &T::request_type());
         let request = Request::builder()
             .method("GET")
@@ -60,6 +59,7 @@ impl Client {
             .https_client
             .request(request)
             .and_then(|response| {
+                debug!("the api responded");
                 let remaining = response
                     .headers()
                     .get(HeaderName::from_lowercase(X_RATE_LIMIT_REMAINING).unwrap())
@@ -83,7 +83,7 @@ impl Client {
                     .map_err(Error::from)
             })
             .map_err(|_err| {
-                trace!("api says {}", _err);
+                error!("api error {}", _err);
                 Err(RequestError::RequestError)
             });
         let mut reactor = Core::new().unwrap();
