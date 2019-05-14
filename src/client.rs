@@ -30,13 +30,13 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(token: &str) -> Self {
+    pub fn new<T>(token: T) -> Self where T: Into<String> {
         let https = HttpsConnector::new(4).unwrap();
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Self {
             https_client: client,
             api_base: API_BASE.to_owned(),
-            api_token: token.to_owned(),
+            api_token: token.into(),
             mashape_host: MASHAPE_HOST.to_owned(),
         }
     }
