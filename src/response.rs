@@ -11,7 +11,7 @@ pub struct Response<T> {
 }
 
 impl<T: DeserializeOwned> Response<T> {
-    pub fn new(raw_json: String, allowed: usize, remaining: usize) -> Response<T> {
+    pub fn new(raw_json: String, allowed: usize, remaining: usize) -> Self {
         Self {
             result: try_parse::<T>(&raw_json),
             response_json: raw_json,

@@ -30,7 +30,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(token: &str) -> Client {
+    pub fn new(token: &str) -> Self {
         let https = HttpsConnector::new(4).unwrap();
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Self {
@@ -82,15 +82,15 @@ impl Client {
                     })
                     .map_err(Error::from)
             })
-            .map_err(|_err| {
-                error!("api error {}", _err);
+            .map_err(|err| {
+                error!("api error {}", err);
                 Err(RequestError::RequestError)
             });
         let mut reactor = Core::new().unwrap();
         let result = reactor.run(work);
         match result {
             Ok(r) => Ok(Response::new(r.0, r.1, r.2)),
-            Err(_e) => _e,
+            Err(e) => e,
         }
     }
 
