@@ -4,6 +4,6 @@ A [Words API](https://www.wordsapi.com) client.
 
 ```
 [dependencies]
-wordsapi-client = { git = "https://github.com/pohl/wordsapi.git" }
+wordsapi = { git = "https://github.com/pohl/wordsapi.git" }
 ```
 
