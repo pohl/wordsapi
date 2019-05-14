@@ -30,7 +30,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new<T>(token: T) -> Self where T: Into<String> {
+    pub fn new<T: Into<String>>(token: T) -> Self {
         let https = HttpsConnector::new(4).unwrap();
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Self {
