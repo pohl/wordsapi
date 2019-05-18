@@ -13,3 +13,6 @@ impl HasRequestType for Antonyms {
         RequestType::Antonyms
     }
 }
+
+// {"word":"silence","antonyms":["sound"]}
+

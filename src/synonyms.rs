@@ -13,3 +13,5 @@ impl HasRequestType for Synonyms {
         RequestType::Synonyms
     }
 }
+
+// {"word":"practice","synonyms":["praxis","pattern","apply","use","drill","exercise","practice session","recitation","practise","rehearse","commit","do"]}
