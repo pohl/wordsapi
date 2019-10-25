@@ -19,8 +19,8 @@ static X_RATE_LIMIT_REMAINING: &[u8] = b"x-ratelimit-requests-remaining";
 static X_RATE_LIMIT_REQUESTS_LIMIT: &[u8] = b"x-ratelimit-requests-limit";
 static X_MASHAPE_KEY: &[u8] = b"x-mashape-key";
 static X_MASHAPE_HOST: &[u8] = b"x-mashape-host";
-static API_BASE: &'static str = "https://wordsapiv1.p.mashape.com/words/";
-static MASHAPE_HOST: &'static str = "wordsapiv1.p.mashape.com";
+static API_BASE: &str = "https://wordsapiv1.p.mashape.com/words/";
+static MASHAPE_HOST: &str = "wordsapiv1.p.mashape.com";
 
 pub struct Client {
     https_client: hyper::Client<HttpsConnector<HttpConnector>, Body>,
@@ -30,13 +30,13 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(token: &str) -> Self {
+    pub fn new<T: Into<String>>(token: T) -> Self {
         let https = HttpsConnector::new(4).unwrap();
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Self {
             https_client: client,
             api_base: API_BASE.to_owned(),
-            api_token: token.to_owned(),
+            api_token: token.into(),
             mashape_host: MASHAPE_HOST.to_owned(),
         }
     }
@@ -492,5 +492,4 @@ mod tests {
             "https://wordsapiv1.p.mashape.com/words/example/entails"
         );
     }
-
 }
