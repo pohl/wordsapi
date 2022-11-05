@@ -2,7 +2,7 @@
 name = "wordsapi"
 version = "0.6.0"
 authors = ["Pohl Longsine <pohl.longsine@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 hyper = "0.12.35"
