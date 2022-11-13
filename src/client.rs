@@ -1,14 +1,12 @@
-use hyper::client::HttpConnector;
-use hyper::error::Error;
+use hyper::Error;
 use hyper::header::HeaderName;
-use hyper::rt::Future;
-use hyper::rt::Stream;
 use hyper::Body;
+use hyper::{client::connect::HttpConnector};
 use hyper::Request;
 use hyper_tls::HttpsConnector;
 use log::{debug, error, trace};
 use serde::de::DeserializeOwned;
-use tokio_core::reactor::Core;
+use futures_util::future::TryFutureExt;
 
 use crate::HasRequestType;
 use crate::RequestError;
@@ -23,7 +21,7 @@ static API_BASE: &str = "https://wordsapiv1.p.mashape.com/words/";
 static MASHAPE_HOST: &str = "wordsapiv1.p.mashape.com";
 
 pub struct Client {
-    https_client: hyper::Client<HttpsConnector<HttpConnector>, Body>,
+    https_client: hyper::Client<HttpsConnector<HttpConnector>>,
     api_base: String,
     api_token: String,
     mashape_host: String,
@@ -31,7 +29,7 @@ pub struct Client {
 
 impl Client {
     pub fn new<T: Into<String>>(token: T) -> Self {
-        let https = HttpsConnector::new(4).unwrap();
+        let https = HttpsConnector::new();
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Self {
             https_client: client,
@@ -70,24 +68,20 @@ impl Client {
                     .get(HeaderName::from_lowercase(X_RATE_LIMIT_REQUESTS_LIMIT).unwrap())
                     .map(|hv| hv.to_str().unwrap().to_string())
                     .map_or(0, |v| v.parse::<usize>().unwrap());
-                response
-                    .into_body()
-                    .concat2()
-                    .map(move |body| {
-                        (
-                            String::from_utf8(body.to_vec()).unwrap(),
-                            allowed,
-                            remaining,
-                        )
-                    })
-                    .map_err(Error::from)
+                hyper::body::to_bytes(response).and_then(move |buf| {
+                    async move {Ok((
+                        String::from_utf8(buf.to_vec()).unwrap(),
+                        allowed,
+                        remaining,
+                    ))}
+                }).map_err(Error::from)
             })
             .map_err(|err| {
                 error!("api error {}", err);
                 Err(RequestError::RequestError)
             });
-        let mut reactor = Core::new().unwrap();
-        let result = reactor.run(work);
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let result = runtime.block_on(work);
         match result {
             Ok(r) => Ok(Response::new(r.0, r.1, r.2)),
             Err(e) => e,
