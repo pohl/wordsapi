@@ -15,10 +15,10 @@ use crate::Response;
 
 static X_RATE_LIMIT_REMAINING: &[u8] = b"x-ratelimit-requests-remaining";
 static X_RATE_LIMIT_REQUESTS_LIMIT: &[u8] = b"x-ratelimit-requests-limit";
-static X_MASHAPE_KEY: &[u8] = b"x-mashape-key";
-static X_MASHAPE_HOST: &[u8] = b"x-mashape-host";
-static API_BASE: &str = "https://wordsapiv1.p.mashape.com/words/";
-static MASHAPE_HOST: &str = "wordsapiv1.p.mashape.com";
+static X_RAPID_API_KEY: &[u8] = b"X-RapidAPI-Key";
+static X_RAPID_API_HOST: &[u8] = b"X-RapidAPI-Host";
+static API_BASE: &str = "https://wordsapiv1.p.rapidapi.com/words/";
+static RAPID_API_HOST: &str = "wordsapiv1.p.rapidapi.com";
 
 pub struct Client {
     https_client: hyper::Client<HttpsConnector<HttpConnector>>,
@@ -35,7 +35,7 @@ impl Client {
             https_client: client,
             api_base: API_BASE.to_owned(),
             api_token: token.into(),
-            mashape_host: MASHAPE_HOST.to_owned(),
+            mashape_host: RAPID_API_HOST.to_owned(),
         }
     }
 
@@ -49,8 +49,8 @@ impl Client {
         let request = Request::builder()
             .method("GET")
             .uri(uri)
-            .header(X_MASHAPE_KEY, self.api_token.to_owned())
-            .header(X_MASHAPE_HOST, self.mashape_host.to_owned())
+            .header(X_RAPID_API_KEY, self.api_token.to_owned())
+            .header(X_RAPID_API_HOST, self.mashape_host.to_owned())
             .body(Body::empty())
             .unwrap();
         let work = self
@@ -126,7 +126,7 @@ impl Client {
 #[cfg(test)]
 mod tests {
     use crate::client::API_BASE;
-    use crate::client::MASHAPE_HOST;
+    use crate::client::RAPID_API_HOST;
     use crate::Client;
     use crate::RequestType;
 
@@ -148,7 +148,7 @@ mod tests {
     fn it_has_mashape_host() {
         let token = "TEST_TOKEN";
         let word_client = Client::new(token);
-        assert_eq!(word_client.mashape_host, MASHAPE_HOST);
+        assert_eq!(word_client.mashape_host, RAPID_API_HOST);
     }
 
     #[test]
@@ -159,7 +159,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::Word);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example"
+            "https://wordsapiv1.p.rapidapi.com/words/example"
         );
     }
 
@@ -171,7 +171,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::Definitions);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/definitions"
+            "https://wordsapiv1.p.rapidapi.com/words/example/definitions"
         );
     }
 
@@ -183,7 +183,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::Synonyms);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/synonyms"
+            "https://wordsapiv1.p.rapidapi.com/words/example/synonyms"
         );
     }
 
@@ -195,7 +195,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::Antonyms);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/antonyms"
+            "https://wordsapiv1.p.rapidapi.com/words/example/antonyms"
         );
     }
 
@@ -207,7 +207,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::Examples);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/examples"
+            "https://wordsapiv1.p.rapidapi.com/words/example/examples"
         );
     }
 
@@ -219,7 +219,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::Rhymes);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/rhymes"
+            "https://wordsapiv1.p.rapidapi.com/words/example/rhymes"
         );
     }
 
@@ -231,7 +231,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::Frequency);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/frequency"
+            "https://wordsapiv1.p.rapidapi.com/words/example/frequency"
         );
     }
 
@@ -243,7 +243,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::IsATypeOf);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/isATypeOf"
+            "https://wordsapiv1.p.rapidapi.com/words/example/isATypeOf"
         );
     }
 
@@ -255,7 +255,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::HasTypes);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/hasTypes"
+            "https://wordsapiv1.p.rapidapi.com/words/example/hasTypes"
         );
     }
 
@@ -267,7 +267,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::PartOf);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/partOf"
+            "https://wordsapiv1.p.rapidapi.com/words/example/partOf"
         );
     }
 
@@ -279,7 +279,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::HasParts);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/hasParts"
+            "https://wordsapiv1.p.rapidapi.com/words/example/hasParts"
         );
     }
 
@@ -291,7 +291,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::IsAnInstanceOf);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/isAnInstanceOf"
+            "https://wordsapiv1.p.rapidapi.com/words/example/isAnInstanceOf"
         );
     }
 
@@ -303,7 +303,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::HasInstances);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/hasInstances"
+            "https://wordsapiv1.p.rapidapi.com/words/example/hasInstances"
         );
     }
 
@@ -315,7 +315,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::InRegion);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/inRegion"
+            "https://wordsapiv1.p.rapidapi.com/words/example/inRegion"
         );
     }
 
@@ -327,7 +327,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::RegionOf);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/regionOf"
+            "https://wordsapiv1.p.rapidapi.com/words/example/regionOf"
         );
     }
 
@@ -339,7 +339,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::UsageOf);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/usageOf"
+            "https://wordsapiv1.p.rapidapi.com/words/example/usageOf"
         );
     }
 
@@ -351,7 +351,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::HasUsages);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/hasUsages"
+            "https://wordsapiv1.p.rapidapi.com/words/example/hasUsages"
         );
     }
 
@@ -363,7 +363,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::IsAMemberOf);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/isAMemberOf"
+            "https://wordsapiv1.p.rapidapi.com/words/example/isAMemberOf"
         );
     }
 
@@ -375,7 +375,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::HasMembers);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/hasMembers"
+            "https://wordsapiv1.p.rapidapi.com/words/example/hasMembers"
         );
     }
 
@@ -387,7 +387,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::IsASubstanceOf);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/isASubstanceOf"
+            "https://wordsapiv1.p.rapidapi.com/words/example/isASubstanceOf"
         );
     }
 
@@ -399,7 +399,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::HasSubstances);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/hasSubstances"
+            "https://wordsapiv1.p.rapidapi.com/words/example/hasSubstances"
         );
     }
 
@@ -411,7 +411,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::HasAttribute);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/hasAttribute"
+            "https://wordsapiv1.p.rapidapi.com/words/example/hasAttribute"
         );
     }
 
@@ -423,7 +423,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::InCategory);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/inCategory"
+            "https://wordsapiv1.p.rapidapi.com/words/example/inCategory"
         );
     }
 
@@ -435,7 +435,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::HasCategories);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/hasCategories"
+            "https://wordsapiv1.p.rapidapi.com/words/example/hasCategories"
         );
     }
 
@@ -447,7 +447,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::Also);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/also"
+            "https://wordsapiv1.p.rapidapi.com/words/example/also"
         );
     }
 
@@ -459,7 +459,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::PertainsTo);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/pertainsTo"
+            "https://wordsapiv1.p.rapidapi.com/words/example/pertainsTo"
         );
     }
 
@@ -471,7 +471,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::SimilarTo);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/similarTo"
+            "https://wordsapiv1.p.rapidapi.com/words/example/similarTo"
         );
     }
 
@@ -483,7 +483,7 @@ mod tests {
         let request_uri = word_client.request_url(word, &RequestType::Entails);
         assert_eq!(
             request_uri,
-            "https://wordsapiv1.p.mashape.com/words/example/entails"
+            "https://wordsapiv1.p.rapidapi.com/words/example/entails"
         );
     }
 }
