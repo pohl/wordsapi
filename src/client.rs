@@ -39,7 +39,7 @@ impl Client {
         }
     }
 
-    pub fn look_up<T: DeserializeOwned + HasRequestType>(
+    pub async fn look_up<T: DeserializeOwned + HasRequestType>(
         &self,
         word: &str,
     ) -> Result<Response<T>, RequestError> {
@@ -80,8 +80,7 @@ impl Client {
                 error!("api error {}", err);
                 Err(RequestError::RequestError)
             });
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = runtime.block_on(work);
+        let result = work.await;
         match result {
             Ok(r) => Ok(Response::new(r.0, r.1, r.2)),
             Err(e) => e,
